@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug 30 18:36:18 2018
-
 @author: ovj
-
 %reset does magic
 """
 
@@ -13,6 +11,7 @@ import pandas as pd
 import time #for time delay function time.sleep
 import visa
 import matplotlib.pyplot as plt
+from collections import deque
 
 
 #%%
@@ -47,6 +46,16 @@ def Cel2K(CelDeg):
     return CelDeg + 273.15
 
 
+def PlotTemp(DataFrame):
+    fig1 = plt.figure("Mercury iCT - Temperature v. Time")
+    ax1 = fig1.add_subplot(111)
+    ax1.set_title("Temperature")
+    ax1.set_xlabel("Time [s]")
+    ax1.set_ylabel("Temperature [K]")
+    
+    ax1.plot(DataFrame["Time [s]"]-DataFrame["Time [s]"][0],DataFrame["Temp [K]"], 'bo')
+
+
 '''
 #==============================================================================
 # Do stuff from here ....
@@ -75,7 +84,7 @@ readTemp()
 # Tell MercuryiCT to go to temperature 1<T<510 [K]
 #==============================================================================
       
-autoPIDtoTemp(315)
+autoPIDtoTemp(305)
 
 #%%
 #==============================================================================
@@ -89,13 +98,13 @@ PIDHeatOff()
 # Read Temperature over time
 #==============================================================================
 
-NSamples = 10 
+NSamples = 30 
 interval = 1 #in seconds
 
 
 data=pd.DataFrame(index=np.arange(0,NSamples),columns=["Time [s]","Temp [K]"])
 for i in range(NSamples):
-    data.iloc[i] = [time.time(),round(readTempSim(),3)]
+    data.iloc[i] = [time.time(),round(readTemp(),3)]
 #    read = pd.DataFrame([time.time(),readTempSim()], columns=["Time","Temp"])    
 #    temp.append(read.transpose(), ignore_index=True)
     time.sleep(interval)
@@ -114,19 +123,21 @@ ax1.set_ylabel("Temperature [K]")
 
 ax1.plot(data["Time [s]"]-data["Time [s]"][0],data["Temp [K]"], 'bo')
 
+
 #%%
 #==============================================================================
 # Temperature Sweep
 #==============================================================================
 
 
-listTemp = [305,310,315,320] #Celsius
+listTemp = [309,313,317,320] #Celsius
 
-waitMinAtT= 3 # Minutes  
+waitMinAtT= 1 # Minutes  
 
-tmax = 120*60         
+tmax = 120*60 # Max Time to wait unil temperature is equilibrated  
 startTime = time.time()
 for Temp in listTemp:
+    print("Ramping to T=%dK"%Temp)
     autoPIDtoTemp(Temp)
     t=0
     while abs(readTemp()-Temp) > 0.5:
@@ -135,8 +146,9 @@ for Temp in listTemp:
         t +=1
         if t > tmax:
             break
-        
+    print("Temperature within 0.5 degrees.")    
     TempReached=time.time()
+    print("Waiting at T=%dK"%Temp)
     while time.time()-TempReached < waitMinAtT*60:
         print(readTemp())
         time.sleep(1)
@@ -144,6 +156,14 @@ for Temp in listTemp:
 PIDHeatOff()
 
     
+#%%
+#==============================================================================
+# Close connection to instrument to allow other programms to connect to it
+#==============================================================================
+inst.close()
+
+
+
 
 '''
 #==============================================================================
@@ -156,7 +176,6 @@ PIDHeatOff()
 
 ''' 
 Individual Commands below. Mark and unquot (ctrl+1)
-
 '''
 
 #
