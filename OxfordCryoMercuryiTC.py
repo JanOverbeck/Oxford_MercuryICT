@@ -11,6 +11,7 @@ import pandas as pd
 import time #for time delay function time.sleep
 import visa
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from collections import deque
 
 
@@ -54,6 +55,21 @@ def PlotTemp(DataFrame):
     ax1.set_ylabel("Temperature [K]")
     
     ax1.plot(DataFrame["Time [s]"]-DataFrame["Time [s]"][0],DataFrame["Temp [K]"], 'bo')
+    
+
+def LiveTemp(data):
+    x,y = data
+    xs.append(x)
+    ys.append(y)
+    ax1.clear()            
+    ax1.plot(xs, ys)
+    
+def data_gen(NSamples=30, tstart=0):
+    i = 0
+    while i<NSamples:
+        yield time.time()-tstart,readTemp()
+        i +=1
+
 
 
 '''
@@ -102,13 +118,34 @@ NSamples = 30
 interval = 1 #in seconds
 
 
+
 data=pd.DataFrame(index=np.arange(0,NSamples),columns=["Time [s]","Temp [K]"])
+
+
 for i in range(NSamples):
     data.iloc[i] = [time.time(),round(readTemp(),3)]
 #    read = pd.DataFrame([time.time(),readTempSim()], columns=["Time","Temp"])    
 #    temp.append(read.transpose(), ignore_index=True)
     time.sleep(interval)
     print("T="+str(data.loc[i]["Temp [K]"]))
+    
+    
+    
+    
+#==============================================================================
+# Plot Temp over Time    
+#==============================================================================
+fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
+xs = []
+ys = []
+startTime = time.time()
+ani = animation.FuncAnimation(fig, LiveTemp, data_gen(30, startTime), interval=1000)
+plt.show()
+
+ 
+    
+    
 
 #%%
 #==============================================================================
@@ -128,6 +165,14 @@ ax1.plot(data["Time [s]"]-data["Time [s]"][0],data["Temp [K]"], 'bo')
 #==============================================================================
 # Temperature Sweep
 #==============================================================================
+fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
+xs = []
+ys = []
+startTime = time.time()
+ani = animation.FuncAnimation(fig, LiveTemp, data_gen(30, startTime), interval=1000)
+plt.show()
+
 
 
 listTemp = [309,313,317,320] #Celsius
