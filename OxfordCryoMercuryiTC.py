@@ -11,6 +11,7 @@ import pandas as pd
 import time #for time delay function time.sleep
 import visa
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from collections import deque
 
 
@@ -54,6 +55,25 @@ def PlotTemp(DataFrame):
     ax1.set_ylabel("Temperature [K]")
     
     ax1.plot(DataFrame["Time [s]"]-DataFrame["Time [s]"][0],DataFrame["Temp [K]"], 'bo')
+    
+
+def LiveTemp(data):
+    x,y = data
+    xs.append(x)
+    ys.append(y)
+    ax2.clear()            
+    ax2.plot(xs, ys)
+    plt.ylim(min(ys)-1, max(ys)+1)
+    ax2.set_title("Oxford Microstat Temperature")
+    ax2.set_xlabel("Time [s]")
+    ax2.set_ylabel("Temperature [K]")
+    
+def data_gen(NSamples=30, tstart=0):
+    i = 0
+    while i<NSamples:
+        yield time.time()-tstart,readTemp()
+        i +=1
+
 
 
 '''
@@ -61,10 +81,15 @@ def PlotTemp(DataFrame):
 # Do stuff from here ....
 #==============================================================================
 '''
+#%%
+#Specify directory in case you want to save things
+dir = r'C:\Users\ovj\Desktop'
+
 #%% 
 #==============================================================================
 # Connect to instrument
 #==============================================================================
+
 
 rm = visa.ResourceManager()
 inst = rm.open_resource('COM6')    # COM-Port may vary - check in device manager
@@ -84,7 +109,7 @@ readTemp()
 # Tell MercuryiCT to go to temperature 1<T<510 [K]
 #==============================================================================
       
-autoPIDtoTemp(305)
+autoPIDtoTemp(307)
 
 #%%
 #==============================================================================
@@ -92,42 +117,43 @@ autoPIDtoTemp(305)
 #==============================================================================
 
 PIDHeatOff()
+    
+#%%    
+#==============================================================================
+# Plot Temp over Time    
+#==============================================================================
+NSeconds = 600
+fig = plt.figure("Live Plot")
+ax2 = fig.add_subplot(1,1,1)
+xs = []
+ys = []
+startTime = time.time()
+ani = animation.FuncAnimation(fig, LiveTemp, data_gen(NSeconds, startTime), interval=1000)
+plt.show()
+
+
 
 #%%
-#==============================================================================
-# Read Temperature over time
-#==============================================================================
+# =============================================================================
+# Save this
+# =============================================================================
 
-NSamples = 30 
-interval = 1 #in seconds
-
-
-data=pd.DataFrame(index=np.arange(0,NSamples),columns=["Time [s]","Temp [K]"])
-for i in range(NSamples):
-    data.iloc[i] = [time.time(),round(readTemp(),3)]
-#    read = pd.DataFrame([time.time(),readTempSim()], columns=["Time","Temp"])    
-#    temp.append(read.transpose(), ignore_index=True)
-    time.sleep(interval)
-    print("T="+str(data.loc[i]["Temp [K]"]))
-
-#%%
-#==============================================================================
-# Plot Temperature 
-#==============================================================================
-
-fig1 = plt.figure("Mercury iCT - Temperature v. Time")
-ax1 = fig1.add_subplot(111)
-ax1.set_title("Temperature")
-ax1.set_xlabel("Time [s]")
-ax1.set_ylabel("Temperature [K]")
-
-ax1.plot(data["Time [s]"]-data["Time [s]"][0],data["Temp [K]"], 'bo')
+tmp = np.array((xs,ys)).transpose()
+np.savetxt(dir+'\Temp-Data-Saved_%s.txt'%time.strftime("%y%m%d_%H%M%S", time.localtime()),tmp)
 
 
 #%%
 #==============================================================================
 # Temperature Sweep
 #==============================================================================
+#fig = plt.figure()
+#ax2 = fig.add_subplot(1,1,1)
+#xs = []
+#ys = []
+#startTime = time.time()
+#ani = animation.FuncAnimation(fig, LiveTemp, data_gen(3000, startTime), interval=1000)
+#plt.show()
+
 
 
 listTemp = [309,313,317,320] #Celsius
@@ -223,6 +249,44 @@ Individual Commands below. Mark and unquot (ctrl+1)
 ## Close connection to instrument to allow other programms to connect to it
 ##==============================================================================
 #inst.close()
+
+
+##%% Old
+##==============================================================================
+## Read Temperature to data over time
+##==============================================================================
+#
+#NSamples = 30
+#interval = 1 #in seconds
+#
+#data=pd.DataFrame(index=np.arange(0,NSamples),columns=["Time [s]","Temp [K]"])
+#
+#
+#for i in range(NSamples):
+#    data.iloc[i] = [time.time(),round(readTemp(),3)]
+##    read = pd.DataFrame([time.time(),readTempSim()], columns=["Time","Temp"])    
+##    temp.append(read.transpose(), ignore_index=True)
+#    time.sleep(interval)
+#    print("T="+str(data.loc[i]["Temp [K]"])) 
+#    
+#    
+#
+##%%
+##==============================================================================
+## Plot Temperature 
+##==============================================================================
+#
+#fig1 = plt.figure("Mercury iCT - Temperature v. Time")
+#ax1 = fig1.add_subplot(111)
+#ax1.set_title("Temperature")
+#ax1.set_xlabel("Time [s]")
+#ax1.set_ylabel("Temperature [K]")
+#
+#ax1.plot(data["Time [s]"]-data["Time [s]"][0],data["Temp [K]"], 'bo')
+#
+#
+#
+#
 
 
 #%%
